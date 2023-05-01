@@ -8,7 +8,7 @@ const userData: Prisma.UserCreateInput[] =  Array.from({ length: 100 }, (_, k) =
   name: `user ${k + 1}`,
   email: `user${k + 1}@prisma.io`,
   posts: {
-    create: Array.from({ length: 1000 }, (_, i) => ({
+    create: Array.from({ length: 100 }, (_, i) => ({
       title: `Post ${i + 1}`,
       content: `Content of post ${i + 1}`,
       published: boolArgs[Math.round(Math.random())]

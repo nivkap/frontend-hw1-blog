@@ -1,11 +1,12 @@
-import React, { useState } from "react";
+import React from "react";
 import type { GetServerSideProps } from "next";
 import Layout from "../components/Layout";
 import Post, { PostProps } from "../components/Post";
 import prisma from '../lib/prisma'
+import { getSession } from "next-auth/react";
 
-export const getServerSideProps: GetServerSideProps = async ({ query }) => {
-  const pageNumber = parseInt((query.page as string) || "1");
+export const getServerSideProps: GetServerSideProps = async (context) => {
+  const pageNumber = parseInt((context.query.page as string) || "1");
   const postsPerPage = 10;
   const postsAmount = await prisma.post.count({
     where: {
@@ -14,9 +15,25 @@ export const getServerSideProps: GetServerSideProps = async ({ query }) => {
   });
 
   const totalNumberOfPages = Math.ceil(postsAmount / postsPerPage);
-
-  const feed = await getCurrentPagePosts(pageNumber)
   
+  const session = await getSession({req: context.req});
+
+  const getCurrentUserID = async () => {
+    const user = await prisma.user.findFirst({
+      where: {
+        email: {equals: session?.user?.email}
+      }
+    });
+
+    if(user === null) 
+      return -1;
+
+
+    return user.id;
+  }
+  
+  const feed = await getCurrentPagePosts(pageNumber, await getCurrentUserID())
+
   return {
     props: { feed, pageNumber, totalNumberOfPages },
   };
@@ -31,14 +48,19 @@ type Props = {
 
 
 
-const getCurrentPagePosts = async (page:number) => {
+const getCurrentPagePosts = async (page:number, sessionUserId: number) => {
   const postsPerPage = 10;
   const content = await prisma.post.findMany({
     orderBy: {
       id: 'asc'
     },
     where: {
-      published: true
+      OR:
+      [ 
+        {published: true},
+        {authorId: {equals: sessionUserId}}
+      ]
+    
     },
     take: postsPerPage * (page - 1)
   })
@@ -53,7 +75,11 @@ const getCurrentPagePosts = async (page:number) => {
     },
     take: postsPerPage,
     where: {
-      published: true,
+      OR:
+      [ 
+        {published: true},
+        {authorId: {equals: sessionUserId}}
+      ],
       id: {
         gt: prevId
       }
