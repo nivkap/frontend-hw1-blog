@@ -1,33 +1,24 @@
 import { PrismaClient, Prisma } from '@prisma/client'
+import Post from '../components/Post';
 
 const prisma = new PrismaClient()
 
-const userData: Prisma.UserCreateInput[] = [
-  // Adding 1,000 fake posts
-  { 
-    name: 'admin',
-    email: 'admin@prisma.io',
-    posts: 
-    {
-      create: Array.from({ length: 1000 }, (_, i) => ({
-        title: `Post ${i + 1}`,
-        content: `Content of post ${i + 1}`,
-        published: true,
-      })),
-    },
+const boolArgs = [true, false]
+
+const userData: Prisma.UserCreateInput[] =  Array.from({ length: 100 }, (_, k) => ({
+  name: `user ${k + 1}`,
+  email: `user${k + 1}@prisma.io`,
+  posts: {
+    create: Array.from({ length: 1000 }, (_, i) => ({
+      title: `Post ${i + 1}`,
+      content: `Content of post ${i + 1}`,
+      published: boolArgs[Math.round(Math.random())]
+    })),
   },
-  { 
-    name: 'secret admin',
-    email: 'secret_admin@prisma.io',
-    posts: 
-    {
-      create: Array.from({ length: 100 }, (_, i) => ({
-        title: `Post ${i + 1}`,
-        content: `Content of post ${i + 1}`,
-        published: false,
-      })),
-    },
-  },
+}))
+
+
+const userBasicData: Prisma.UserCreateInput[] = [
   {
     name: 'Alice',
     email: 'alice@prisma.io',
@@ -93,4 +84,3 @@ main()
     await prisma.$disconnect()
     process.exit(1)
   })
-
