@@ -3,6 +3,31 @@ import { PrismaClient, Prisma } from '@prisma/client'
 const prisma = new PrismaClient()
 
 const userData: Prisma.UserCreateInput[] = [
+  // Adding 1,000 fake posts
+  { 
+    name: 'admin',
+    email: 'admin@prisma.io',
+    posts: 
+    {
+      create: Array.from({ length: 1000 }, (_, i) => ({
+        title: `Post ${i + 1}`,
+        content: `Content of post ${i + 1}`,
+        published: true,
+      })),
+    },
+  },
+  { 
+    name: 'secret admin',
+    email: 'secret_admin@prisma.io',
+    posts: 
+    {
+      create: Array.from({ length: 100 }, (_, i) => ({
+        title: `Post ${i + 1}`,
+        content: `Content of post ${i + 1}`,
+        published: false,
+      })),
+    },
+  },
   {
     name: 'Alice',
     email: 'alice@prisma.io',
@@ -68,3 +93,4 @@ main()
     await prisma.$disconnect()
     process.exit(1)
   })
+
