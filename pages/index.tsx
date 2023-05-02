@@ -1,9 +1,11 @@
-import React from "react";
+import React, {useRef, useState} from "react";
 import type { GetServerSideProps } from "next";
 import Layout from "../components/Layout";
 import Post, { PostProps } from "../components/Post";
 import prisma from '../lib/prisma'
 import { getSession } from "next-auth/react";
+import { useRouter } from 'next/router';
+
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const pageNumber = parseInt((context.query.page as string) || "1");
@@ -97,16 +99,31 @@ const getCurrentPagePosts = async (page:number, sessionUserId: number) => {
 
 
 const Blog: React.FC<Props> = (props) => {
+  const router = useRouter();
+  const [formPage, setFormPage] = useState(props.pageNumber);
 
   const changePage = (newPage: number) => {
-    window.location.href = `/?page=${newPage}`;
+    router.push(`/?page=${newPage}`);
   };
 
   // Prepering the numbers of the buttons
   const pageNumbers = [];
+
+  const changeFormPage = (formPageChange: React.FormEvent<HTMLInputElement>) => {
+    const newFormPage = parseInt(formPageChange.currentTarget.value);
+    if(newFormPage < 1 || newFormPage > props.totalNumberOfPages)  {
+      return;
+    }
+    setFormPage(newFormPage)
+
+  }
+
+
   for (let i = 1; i <= props.totalNumberOfPages; i++) {
     pageNumbers.push(i);
   }
+
+
   
 
   return (
@@ -123,18 +140,16 @@ const Blog: React.FC<Props> = (props) => {
           </main>
         <nav>
           <ul className="pagination">
-            {pageNumbers.map((number) => (
-              <li key={number} className="page-item">  {/* we can use button instead of a and remove href - changing the reloading*/}
-                <a
-                  href="#"
-                  className={`page-link ${props.pageNumber === number ? "active" : ""}`}
-                  onClick={() => changePage(number)}
-                >
-                  {number}
-                </a>
-              </li>
-            ))}
-          </ul>
+            <form onSubmit={(form) => {
+              form.preventDefault();
+              changePage(formPage);
+            }}>
+              <label>
+                <input type="number" value={formPage} onChange={changeFormPage} />
+              </label>
+              <input type="submit" value="Go to page" />
+            </form>
+          </ul> 
         </nav>
       </div>
       <style jsx>{`
@@ -153,22 +168,43 @@ const Blog: React.FC<Props> = (props) => {
 
         .pagination {
           display: flex;
-          overflow-x: auto;
-          white-space: nowrap;
-          padding-bottom: 1rem;
-          -ms-overflow-style: none; /* IE and Edge */
-          scrollbar-width: none; /* Firefox */
+          justify-content: center;
+          align-items: center;
+          margin: 20px 0;
         }
         
-        .pagination::-webkit-scrollbar {
-          display: none; /* Hide scrollbar for Chrome, Safari and Opera */
+        .pagination form {
+          display: flex;
+          align-items: center;
         }
         
-        .page-item {
-          margin: 0 0.5rem;
-          display: inline-block;
-          white-space: nowrap;
+        .pagination label {
+          font-size: 18px;
+          margin-right: 10px;
         }
+        
+        .pagination input[type="number"] {
+          width: 65px;
+          padding: 5px;
+          font-size: 16px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+        }
+        
+        .pagination input[type="submit"] {
+          padding: 5px 10px;
+          background-color: #4CAF50;
+          color: #fff;
+          font-size: 16px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        }
+        
+        .pagination input[type="submit"]:hover {
+          background-color: #3e8e41;
+        }
+        
         
       `}</style>
     </Layout>
