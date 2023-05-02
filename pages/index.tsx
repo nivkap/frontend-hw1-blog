@@ -111,7 +111,7 @@ const Blog: React.FC<Props> = (props) => {
 
   const changeFormPage = (formPageChange: React.FormEvent<HTMLInputElement>) => {
     const newFormPage = parseInt(formPageChange.currentTarget.value);
-    if(newFormPage < 1 || newFormPage > props.totalNumberOfPages)  {
+    if(isNaN(newFormPage) || newFormPage < 1 || newFormPage > props.totalNumberOfPages)  {
       return;
     }
     setFormPage(newFormPage)
@@ -184,7 +184,7 @@ const Blog: React.FC<Props> = (props) => {
         }
         
         .pagination input[type="number"] {
-          width: 65px;
+          width: 70px;
           padding: 5px;
           font-size: 16px;
           border: 1px solid #ccc;
