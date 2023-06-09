@@ -5,18 +5,13 @@ import Post, { PostProps } from "../components/Post";
 import prisma from '../lib/prisma'
 import { getSession } from "next-auth/react";
 import { useRouter } from 'next/router';
+import { PageBar } from "../components/PageBar";
+import { PageBarForm } from "../components/PageBarForm";
 
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
   const pageNumber = parseInt((context.query.page as string) || "1");
   const postsPerPage = 10;
-  const postsAmount = await prisma.post.count({
-    where: {
-      published: true,
-    },
-  });
-
-  const totalNumberOfPages = Math.ceil(postsAmount / postsPerPage);
   
   const session = await getSession({req: context.req});
 
@@ -33,6 +28,17 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     return user.id;
   }
+  const postsAmount = await prisma.post.count({
+    where: {
+      OR:
+      [ 
+        {published: true},
+        {authorId: {equals: await getCurrentUserID()}}
+      ]
+    },
+  });
+
+  const totalNumberOfPages = Math.ceil(postsAmount / postsPerPage);
   
   const feed = await getCurrentPagePosts(pageNumber, await getCurrentUserID())
 
@@ -101,13 +107,18 @@ const getCurrentPagePosts = async (page:number, sessionUserId: number) => {
 const Blog: React.FC<Props> = (props) => {
   const router = useRouter();
   const [formPage, setFormPage] = useState(props.pageNumber);
+  const { feed, pageNumber, totalNumberOfPages } = props;
 
   const changePage = (newPage: number) => {
+    setFormPage(newPage);
     router.push(`/?page=${newPage}`);
   };
 
-  // Prepering the numbers of the buttons
+  // Preparing the numbers of the buttons
   const pageNumbers = [];
+  const maxVisiblePages = 5; // Number of pages to display before and after the current page
+  const minPage = Math.max(1, pageNumber - maxVisiblePages);
+  const maxPage = Math.min(totalNumberOfPages, pageNumber + maxVisiblePages);
 
   const changeFormPage = (formPageChange: React.FormEvent<HTMLInputElement>) => {
     const newFormPage = parseInt(formPageChange.currentTarget.value);
@@ -119,93 +130,42 @@ const Blog: React.FC<Props> = (props) => {
   }
 
 
-  for (let i = 1; i <= props.totalNumberOfPages; i++) {
+  for (let i = minPage; i <= maxPage; i++) {
     pageNumbers.push(i);
   }
-
-
-  
 
   return (
     <Layout>
       <div className="page">
         <h1>Public Feed</h1>
-          <h2>Page {props.pageNumber} / {props.totalNumberOfPages}</h2>
-          <main>
-            {props.feed.map((post) => (
-              <div key={post.id} className="post">
-                <Post post={post} />
-              </div>
-            ))}
-          </main>
-        <nav>
-          <ul className="pagination">
-            <form onSubmit={(form) => {
-              form.preventDefault();
-              changePage(formPage);
-            }}>
-              <label>
-                <input type="number" value={formPage} onChange={changeFormPage} />
-              </label>
-              <input type="submit" value="Go to page" />
-            </form>
-          </ul> 
-        </nav>
+        <h2>Page {pageNumber} / {totalNumberOfPages}</h2>
+        <main>
+          {feed.map((post) => (
+            <div key={post.id} className="post">
+              <Post post={post} />
+            </div>
+          ))}
+        </main>
+        <PageBar totalNumberOfPages={totalNumberOfPages} pageNumber={pageNumber} pageNumbers={pageNumbers} changePage={changePage}/>
+        <PageBarForm formPage={formPage} changeFormPage={changeFormPage} changePage={changePage}/>
       </div>
       <style jsx>{`
-        .post {
-          background: white;
-          transition: box-shadow 0.1s ease-in;
-        }
+      .post {
+        background: white;
+        transition: box-shadow 0.1s ease-in;
+      }
 
-        .post:hover {
-          box-shadow: 1px 1px 3px #aaa;
-        }
+      .post:hover {
+        box-shadow: 1px 1px 3px #aaa;
+      }
 
-        .post + .post {
-          margin-top: 2rem;
-        }
-
-        .pagination {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          margin: 20px 0;
-        }
-        
-        .pagination form {
-          display: flex;
-          align-items: center;
-        }
-        
-        .pagination label {
-          font-size: 18px;
-          margin-right: 10px;
-        }
-        
-        .pagination input[type="number"] {
-          width: 70px;
-          padding: 5px;
-          font-size: 16px;
-          border: 1px solid #ccc;
-          border-radius: 4px;
-        }
-        
-        .pagination input[type="submit"] {
-          padding: 5px 10px;
-          background-color: #4CAF50;
-          color: #fff;
-          font-size: 16px;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-        }
-        
-        .pagination input[type="submit"]:hover {
-          background-color: #3e8e41;
-        }
-        
-        
+      .post + .post {
+        margin-top: 2rem;
+      }
+      
+      h2 {
+        color: "#FFFFFF";
+      }
       `}</style>
     </Layout>
   );
